@@ -1,0 +1,23 @@
+stages:
+  - build
+  - test
+  - lint
+
+build:
+  stage: build
+  image: udsdepend/cp25-project-env
+  script:
+    - just build
+
+test:
+  stage: test
+  image: udsdepend/cp25-project-env
+  script:
+    - just test
+  allow_failure: true # change this to false once you pass the tests
+
+lint:
+  stage: lint
+  image: udsdepend/cp25-project-env
+  script:
+    - just lint
