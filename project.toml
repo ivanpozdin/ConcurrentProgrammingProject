@@ -1,9 +1,9 @@
 # This name will show up in the leader board of Mission Control
 # https://missioncontrol.pseuco.com/#/leaderboard
-team-name = "temptous template"
+team-name = "ghastly germs"
 
 # The programming language you use: either "java" or "rust"
-language = "rust"
+language = "java"
 
 # Whether you implemented the bonus
 bonus-implemented = false
