@@ -27,7 +27,7 @@
     "configurations": [
       {
         "type": "java",
-        "name": "We ♥ NP (Slug)",
+        "name": "☕ We ♥ NP (Slug)",
         "request": "launch",
         "mainClass": "com.pseuco.cp25.Simulator",
         // "projectName": "spread-simulator",
@@ -35,7 +35,7 @@
       },
       {
         "type": "java",
-        "name": "We ♥ NP (Rocket)",
+        "name": "☕ We ♥ NP (Rocket)",
         "request": "launch",
         "mainClass": "com.pseuco.cp25.Simulator",
         // "projectName": "spread-simulator",
@@ -44,21 +44,54 @@
       {
         "type": "lldb",
         "request": "launch",
-        "name": "Debug Rust implementation",
+        "name": "🦀 We ♥ NP (Slug)",
         "cargo": {
           "args": [
             "build",
-            "--release",
-            // "--bin=spread-sim",
-            // "--package=spread-sim",
-            "--manifest-path=${workspaceFolder}/Cargo.toml",
+            // "--release",
+            "--bin=spread-sim",
+            "--package=spread-sim",
+            "--manifest-path=Cargo.toml",
           ],
+          "cwd": "${workspaceFolder}",
           "filter": {
             "name": "spread-sim",
             "kind": "bin"
           }
         },
-        "args": [],
+        "args": [
+          "--scenario",
+          "scenarios/we_love_np.json",
+          "--out",
+          "out/we_love_np.result.json",
+        ],
+        "cwd": "${workspaceFolder}"
+      },
+      {
+        "type": "lldb",
+        "request": "launch",
+        "name": "🦀 We ♥ NP (Rocket)",
+        "cargo": {
+          "args": [
+            "build",
+            // "--release",
+            "--bin=spread-sim",
+            "--package=spread-sim",
+            "--manifest-path=Cargo.toml",
+          ],
+          "cwd": "${workspaceFolder}",
+          "filter": {
+            "name": "spread-sim",
+            "kind": "bin"
+          }
+        },
+        "args": [
+          "--scenario",
+          "scenarios/we_love_np.json",
+          "--out",
+          "out/we_love_np.result.json",
+          "--rocket"
+        ],
         "cwd": "${workspaceFolder}"
       },
     ],
