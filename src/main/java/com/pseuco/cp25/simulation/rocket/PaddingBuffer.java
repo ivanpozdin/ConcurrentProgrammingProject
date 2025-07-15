@@ -1,20 +1,21 @@
 package com.pseuco.cp25.simulation.rocket;
 
-import com.pseuco.cp25.model.PersonInfo;
 import com.pseuco.cp25.model.Rectangle;
+import com.pseuco.cp25.simulation.common.Context;
+import com.pseuco.cp25.simulation.common.Person;
 
 import java.util.List;
 
 /**
  * The `PaddingBuffer` class provides a thread-safe buffer for storing and retrieving
- * a list of `PersonInfo` objects. It uses a producer-consumer pattern with synchronized
+ * a list of `Person` objects. It uses a producer-consumer pattern with synchronized
  * methods to ensure proper coordination between threads. Additionally, it stores
  * a `Rectangle` object representing the area associated with the buffer.
  */
 public class PaddingBuffer {
-    private boolean hasSomethingToRead;
-    private List<PersonInfo> population;
     private final Rectangle area;
+    private boolean hasSomethingToRead;
+    private List<Person> population;
 
     /**
      * Constructs a new empty `PaddingBuffer`.
@@ -28,29 +29,30 @@ public class PaddingBuffer {
      * Reads the population data from the buffer.
      * This method blocks if the buffer is empty until data is written to it.
      *
-     * @return The list of `PersonInfo` objects stored in the buffer.
+     * @param context The `Context` object used for cloning `Person` objects.
+     * @return The list of `Person` objects stored in the buffer.
      * @throws InterruptedException if the thread is interrupted while waiting.
      */
-    public synchronized List<PersonInfo> read() throws InterruptedException {
+    public synchronized List<Person> read(Context context) throws InterruptedException {
         while (!hasSomethingToRead) this.wait();
 
         hasSomethingToRead = false;
         this.notifyAll();
 
-        return population;
+        return population.stream().map(person -> person.clone(context)).toList();
     }
 
     /**
      * Writes population data to the buffer.
      * This method blocks if the buffer already contains data until it is read.
      *
-     * @param population The list of `PersonInfo` objects to store in the buffer.
+     * @param population The list of `Person` objects to store in the buffer.
      * @throws InterruptedException if the thread is interrupted while waiting.
      */
-    public synchronized void write(List<PersonInfo> population) throws InterruptedException {
+    public synchronized void write(List<Person> population) throws InterruptedException {
         while (hasSomethingToRead) this.wait();
 
-        this.population = population;
+        this.population = population.stream().map(person -> person.clone(null)).toList();
 
         hasSomethingToRead = true;
         this.notifyAll();
