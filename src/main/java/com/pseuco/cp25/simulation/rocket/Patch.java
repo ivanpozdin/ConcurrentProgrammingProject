@@ -16,7 +16,7 @@ public class Patch implements Simulation, Context {
     private final List<PaddingBuffer> outerPaddings = new ArrayList<>();
     private final int cycleDuration;
     private final List<Person> combinedPopulation;
-    private final Rectangle area;
+    private final Rectangle patchArea;
     private final Rectangle paddedArea;
     private final Scenario scenario;
     private final List<TraceEntry> trace = new ArrayList<>();
@@ -24,8 +24,10 @@ public class Patch implements Simulation, Context {
     private List<Person> patchPopulation;
 
 
-    public Patch(List<PersonInfo> patchPopulation, Rectangle patchArea, Rectangle paddedArea, int cycleDuration, Scenario scenario) {
-        this.area = patchArea;
+    public Patch(List<Person> patchPopulation, Rectangle patchArea, Rectangle paddedArea,
+                 int cycleDuration, Scenario scenario) {
+        this.patchPopulation = patchPopulation.stream().map(person -> person.clone(this)).toList();
+        this.patchArea = patchArea;
         this.paddedArea = paddedArea;
         this.cycleDuration = cycleDuration;
         this.scenario = scenario;
@@ -43,41 +45,38 @@ public class Patch implements Simulation, Context {
         }
     }
 
-    public void doOneCycle() {
-        doSynchronization();
-        for (int tick = 0; tick < cycleDuration; tick++) {
-            for (Person person : combinedPopulation) {
-                person.tick();
-            }
-            // bust the ghosts of all persons
-            this.combinedPopulation.stream().forEach(Person::bustGhost);
+    public void tick() {
+        for (Person person : combinedPopulation) {
+            person.tick();
+        }
+        // bust the ghosts of all persons
+        this.combinedPopulation.stream().forEach(Person::bustGhost);
 
-            // now compute how the infection spreads between the combinedPopulation
-            for (int i = 0; i < this.combinedPopulation.size(); i++) {
-                for (int j = i + 1; j < this.combinedPopulation.size(); j++) {
-                    final Person iPerson = this.combinedPopulation.get(i);
-                    final Person jPerson = this.combinedPopulation.get(j);
-                    final XY iPosition = iPerson.getPosition();
-                    final XY jPosition = jPerson.getPosition();
-                    final int deltaX = Math.abs(iPosition.getX() - jPosition.getX());
-                    final int deltaY = Math.abs(iPosition.getY() - jPosition.getY());
-                    final int distance = deltaX + deltaY;
-                    if (distance <= this.scenario.getParameters().getInfectionRadius()) {
-                        if (iPerson.isInfectious() && iPerson.isCoughing() && jPerson.isBreathing()) {
-                            jPerson.infect();
-                        }
-                        if (jPerson.isInfectious() && jPerson.isCoughing() && iPerson.isBreathing()) {
-                            iPerson.infect();
-                        }
+        // now compute how the infection spreads between the combinedPopulation
+        for (int i = 0; i < this.combinedPopulation.size(); i++) {
+            for (int j = i + 1; j < this.combinedPopulation.size(); j++) {
+                final Person iPerson = this.combinedPopulation.get(i);
+                final Person jPerson = this.combinedPopulation.get(j);
+                final XY iPosition = iPerson.getPosition();
+                final XY jPosition = jPerson.getPosition();
+                final int deltaX = Math.abs(iPosition.getX() - jPosition.getX());
+                final int deltaY = Math.abs(iPosition.getY() - jPosition.getY());
+                final int distance = deltaX + deltaY;
+                if (distance <= this.scenario.getParameters().getInfectionRadius()) {
+                    if (iPerson.isInfectious() && iPerson.isCoughing() && jPerson.isBreathing()) {
+                        jPerson.infect();
+                    }
+                    if (jPerson.isInfectious() && jPerson.isCoughing() && iPerson.isBreathing()) {
+                        iPerson.infect();
                     }
                 }
             }
-
-            this.patchPopulation = combinedPopulation.stream().filter(person -> area.contains(person.getPosition())).toList();
-
-            // we need to collect statistics and extend the recorded trace
-            this.extendOutput();
         }
+
+        this.patchPopulation = combinedPopulation.stream().filter(person -> patchArea.contains(person.getPosition())).toList();
+
+        // we need to collect statistics and extend the recorded trace
+        this.extendOutput();
     }
 
     private void doSynchronization() {
@@ -119,6 +118,10 @@ public class Patch implements Simulation, Context {
 
     public void addOuterPadding(PaddingBuffer paddingBuffer) {
         outerPaddings.add(paddingBuffer);
+    }
+
+    public Rectangle getPatchArea() {
+        return patchArea;
     }
 
 
@@ -173,11 +176,17 @@ public class Patch implements Simulation, Context {
 
     @Override
     public Output getOutput() {
-        return null;
+        return new Output(this.scenario, this.trace, this.statistics);
     }
 
+    // Note that since tick starts with 0, synchronization will happen as the first thing.
     @Override
     public void run() {
-
+        for (int tick = 0; tick < this.scenario.getTicks(); tick++) {
+            if (tick % cycleDuration == 0) {
+                doSynchronization();
+            }
+            this.tick();
+        }
     }
 }
