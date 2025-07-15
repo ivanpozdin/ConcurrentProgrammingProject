@@ -33,8 +33,13 @@ public class PaddingBuffer {
      * @return The list of `Person` objects stored in the buffer.
      * @throws InterruptedException if the thread is interrupted while waiting.
      */
-    public synchronized List<Person> read(Context context) throws InterruptedException {
-        while (!hasSomethingToRead) this.wait();
+    public synchronized List<Person> read(Context context) {
+        while (!hasSomethingToRead) try {
+            this.wait();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Thread was interrupted unexpectedly during buffer write", e);
+        }
 
         hasSomethingToRead = false;
         this.notifyAll();
@@ -49,8 +54,15 @@ public class PaddingBuffer {
      * @param population The list of `Person` objects to store in the buffer.
      * @throws InterruptedException if the thread is interrupted while waiting.
      */
-    public synchronized void write(List<Person> population) throws InterruptedException {
-        while (hasSomethingToRead) this.wait();
+    public synchronized void write(List<Person> population) {
+        while (hasSomethingToRead) {
+            try {
+                this.wait();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException("Thread was interrupted unexpectedly during buffer write", e);
+            }
+        }
 
         this.population = population.stream().map(person -> person.clone(null)).toList();
 
