@@ -5,10 +5,7 @@ import com.pseuco.cp25.simulation.common.Context;
 import com.pseuco.cp25.simulation.common.Person;
 import com.pseuco.cp25.validator.Validator;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -211,6 +208,8 @@ public class Patch implements Runnable, Context {
         combinedPopulation.clear();
         readFromOuterPaddingsToCombinedPopulation();
         combinedPopulation.addAll(patchPopulation);
+        // Sort combined population each time 🤨
+        combinedPopulation.sort(Comparator.comparing(Person::getId));
     }
 
     private List<Person> extractPopulationInArea(Rectangle area) {
