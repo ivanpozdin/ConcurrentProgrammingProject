@@ -24,8 +24,9 @@ public class Patch implements Runnable, Context {
     private final Rectangle patchArea;
     private final Rectangle paddedArea;
     private final Scenario scenario;
-    private final List<TraceEntry> trace = new ArrayList<>();
     private final Map<String, List<Statistics>> statistics = new HashMap<>();
+    private final List<List<PersonInfoWithId>> trace = new ArrayList<>();
+
     private final int patchId;
     private final Validator validator;
     private List<Person> patchPopulation;
@@ -33,13 +34,13 @@ public class Patch implements Runnable, Context {
     /**
      * Constructs a new Patch instance.
      *
-     * @param patchPopulation          The initial population of the patch.
-     * @param patchArea                The area of the patch.
-     * @param paddedArea               The padded area around the patch.
-     * @param cycleDuration            The duration of a simulation cycle.
-     * @param scenario                 The simulation scenario.
-     * @param patchId                  The unique identifier of the patch.
-     * @param validator                The validator for automatic testing.
+     * @param patchPopulation The initial population of the patch.
+     * @param patchArea       The area of the patch.
+     * @param paddedArea      The padded area around the patch.
+     * @param cycleDuration   The duration of a simulation cycle.
+     * @param scenario        The simulation scenario.
+     * @param patchId         The unique identifier of the patch.
+     * @param validator       The validator for automatic testing.
      */
     public Patch(
             List<Person> patchPopulation,
@@ -90,6 +91,15 @@ public class Patch implements Runnable, Context {
     }
 
     /**
+     * Getter for patch's padded area.
+     *
+     * @return patch's padded area
+     */
+    public Rectangle getPaddedArea() {
+        return patchArea;
+    }
+
+    /**
      * Returns the simulation area including padding around the patch.
      *
      * @return simulation area (for `Person`'s context).
@@ -131,6 +141,26 @@ public class Patch implements Runnable, Context {
             validator.onPatchTick(tickNumber, patchId);
             this.tick(tickNumber);
         }
+    }
+
+    /**
+     * Returns the statistics collected during simulation.
+     * To be called after simulation is finished.
+     *
+     * @return The statistics collected during simulation.
+     */
+    public Map<String, List<Statistics>> getStatistics() {
+        return statistics;
+    }
+
+    /**
+     * Returns the full trace collected during simulation.
+     * To be called after simulation is finished.
+     *
+     * @return The full trace collected during simulation.
+     */
+    public List<List<PersonInfoWithId>> getTrace() {
+        return trace;
     }
 
     private void initializeStatistics() {
@@ -237,7 +267,13 @@ public class Patch implements Runnable, Context {
     private void extendOutput() {
         // we extend the statists and the trace for the current tick
         if (this.scenario.getTrace()) {
-            this.trace.add(new TraceEntry(this.patchPopulation.stream().map(Person::getInfo).collect(Collectors.toList())));
+            this.trace.add(
+                    this.patchPopulation.stream()
+                            .map(person ->
+                                    new PersonInfoWithId(person.getInfo(), person.getId())
+                            )
+                            .collect(Collectors.toList())
+            );
         }
 
         this.extendStatistics();
