@@ -23,10 +23,9 @@ public class Rocket implements Simulation {
     private final List<Person> initialPopulation = new ArrayList<>();
     private final List<Patch> patches = new ArrayList<>();
     private final List<Thread> threads = new ArrayList<>();
+    private final int statsLength;
     Validator validator;
     private List<TraceEntry> totalTrace;
-
-    private final int statsLength;
 
     /**
      * Constructs a rocket with the given parameters.
@@ -155,10 +154,7 @@ public class Rocket implements Simulation {
 
             for (Patch innerPatch : patches) {
                 if (innerPatch == outerPatch) continue;
-                if (!innerPatch.getPatchArea().overlaps(outerPatch.getPaddedArea())) {
-                    System.out.println(innerPatch.getPatchArea() + " " + outerPatch.getPaddedArea());
-                    continue;
-                }
+                if (!innerPatch.getPatchArea().overlaps(outerPatch.getPaddedArea())) continue;
 
                 Rectangle intersectionOfPaddingAndPatch =
                         outerPatch.getPaddedArea().intersect(innerPatch.getPatchArea());
