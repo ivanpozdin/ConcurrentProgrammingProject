@@ -5,9 +5,7 @@ import com.pseuco.cp25.model.Scenario;
 import com.pseuco.cp25.model.Statistics;
 import com.pseuco.cp25.model.XY;
 
-import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
 
 /**
  * Some useful utilities for the concurrent implementation.
@@ -24,59 +22,6 @@ public class Utils {
         return new PatchesIterator(scenario);
     }
 
-    /**
-     * Computes the difference between two rectangles, returning a list of rectangles
-     * that represent the area of the larger rectangle not covered by the smaller one.
-     *
-     * @param big   The larger rectangle.
-     * @param small The smaller rectangle to subtract from the larger one.
-     * @return A list of rectangles representing the uncovered areas.
-     * (In counter-clockwise order starting from the top rectangle (if non-empty))
-     */
-    static public List<Rectangle> rectangleMinusRectangle(Rectangle big,
-                                                          Rectangle small) {
-        List<Rectangle> rectangles = new ArrayList<>();
-
-        // Check that big rectangle covers the small one.
-        if (!(big.intersect(small).equals(small))) return rectangles;
-
-        if (big.getTopLeft().getY() != small.getTopLeft().getY()) {
-            Rectangle top = new Rectangle(
-                    big.getTopLeft(),
-                    new XY(big.getSize().getX(), small.getTopLeft().getY() - big.getTopLeft().getY())
-            );
-            rectangles.add(top);
-        }
-
-        if (big.getTopLeft().getX() != small.getTopLeft().getX()) {
-            Rectangle left = new Rectangle(
-                    big.getTopLeft(),
-                    new XY(small.getTopLeft().getX() - big.getTopLeft().getX(),
-                            big.getSize().getY())
-            );
-            rectangles.add(left);
-        }
-
-        if (big.getBottomRight().getY() != small.getBottomRight().getY()) {
-            XY smallBottomLeft = small.getBottomRight().sub(small.getSize().getX(), 0);
-
-            Rectangle bottom = new Rectangle(
-                    new XY(big.getTopLeft().getX(), smallBottomLeft.getY()),
-                    new XY(big.getSize().getX(), big.getBottomRight().getY() - small.getBottomRight().getY())
-            );
-            rectangles.add(bottom);
-        }
-
-        if (big.getBottomRight().getX() != small.getBottomRight().getX()) {
-            Rectangle right = new Rectangle(
-                    new XY(small.getBottomRight().getX(), big.getTopLeft().getY()),
-                    new XY(big.getBottomRight().getX() - small.getBottomRight().getX(), big.getSize().getY())
-            );
-            rectangles.add(right);
-        }
-
-        return rectangles;
-    }
 
     /**
      * Computes a padded area around a given rectangle, constrained by a grid.
@@ -87,7 +32,7 @@ public class Utils {
      * @return A new rectangle representing the padded area, intersected with the grid.
      */
     static public Rectangle getPaddedArea(int padding, Rectangle area, Rectangle grid) {
-        XY topLeft = area.getTopLeft().add(-padding);
+        XY topLeft = area.getTopLeft().sub(padding);
         XY size = area.getSize().add(2 * padding);
 
         return new Rectangle(topLeft, size).intersect(grid);
