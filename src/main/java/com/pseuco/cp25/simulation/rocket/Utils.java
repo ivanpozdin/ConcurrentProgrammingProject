@@ -2,6 +2,7 @@ package com.pseuco.cp25.simulation.rocket;
 
 import com.pseuco.cp25.model.Rectangle;
 import com.pseuco.cp25.model.Scenario;
+import com.pseuco.cp25.model.Statistics;
 import com.pseuco.cp25.model.XY;
 
 import java.util.ArrayList;
@@ -90,6 +91,22 @@ public class Utils {
         XY size = area.getSize().add(2 * padding);
 
         return new Rectangle(topLeft, size).intersect(grid);
+    }
+
+    /**
+     * Merges two statistics objects by summing up their respective fields.
+     *
+     * @param stats1 The first statistics object.
+     * @param stats2 The second statistics object.
+     * @return A new Statistics object with summed values.
+     */
+    public static Statistics mergeStatistics(Statistics stats1, Statistics stats2) {
+        return new Statistics(
+                stats1.getSusceptible() + stats2.getSusceptible(),
+                stats1.getInfected() + stats2.getInfected(),
+                stats1.getInfectious() + stats2.getInfectious(),
+                stats1.getRecovered() + stats2.getRecovered()
+        );
     }
 
     static private class PatchesIterator implements Iterator<Rectangle> {
