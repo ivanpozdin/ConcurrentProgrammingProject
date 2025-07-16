@@ -3,7 +3,7 @@ package com.pseuco.cp25.simulation.rocket;
 import com.pseuco.cp25.model.*;
 import com.pseuco.cp25.simulation.common.Context;
 import com.pseuco.cp25.simulation.common.Person;
-import com.pseuco.cp25.simulation.common.Simulation;
+import com.pseuco.cp25.validator.Validator;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -11,7 +11,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class Patch implements Simulation, Context {
+/**
+ * Represents a patch, which is a part of the simulation grid.
+ * Handles simulation of its part of the population, synchronization with its
+ * PaddingBuffers, and communicating statistics at the end.
+ */
+public class Patch implements Runnable, Context {
     private final List<PaddingBuffer> innerPaddings = new ArrayList<>();
     private final List<PaddingBuffer> outerPaddings = new ArrayList<>();
     private final int cycleDuration;
@@ -21,21 +26,111 @@ public class Patch implements Simulation, Context {
     private final Scenario scenario;
     private final List<TraceEntry> trace = new ArrayList<>();
     private final Map<String, List<Statistics>> statistics = new HashMap<>();
+    private final int patchId;
+    private final Validator validator;
     private List<Person> patchPopulation;
 
-
-    public Patch(List<Person> patchPopulation, Rectangle patchArea, Rectangle paddedArea,
-                 int cycleDuration, Scenario scenario) {
+    /**
+     * Constructs a new Patch instance.
+     *
+     * @param patchPopulation          The initial population of the patch.
+     * @param patchArea                The area of the patch.
+     * @param paddedArea               The padded area around the patch.
+     * @param cycleDuration            The duration of a simulation cycle.
+     * @param scenario                 The simulation scenario.
+     * @param patchId                  The unique identifier of the patch.
+     * @param validator                The validator for automatic testing.
+     */
+    public Patch(
+            List<Person> patchPopulation,
+            Rectangle patchArea,
+            Rectangle paddedArea,
+            int cycleDuration,
+            Scenario scenario,
+            int patchId,
+            Validator validator
+    ) {
         this.patchPopulation = patchPopulation.stream().map(person -> person.clone(this)).toList();
         this.patchArea = patchArea;
         this.paddedArea = paddedArea;
         this.cycleDuration = cycleDuration;
         this.scenario = scenario;
+        this.patchId = patchId;
+        this.validator = validator;
 
         this.initializeStatistics();
         this.combinedPopulation = new ArrayList<>();
+    }
+
+    /**
+     * Adds inner padding. Use only for initialization.
+     *
+     * @param paddingBuffer representing inner padding.
+     */
+    public void addInnerPadding(PaddingBuffer paddingBuffer) {
+        innerPaddings.add(paddingBuffer);
+    }
+
+    /**
+     * Adds outer padding. Use only for initialization.
+     *
+     * @param paddingBuffer representing outer padding.
+     */
+    public void addOuterPadding(PaddingBuffer paddingBuffer) {
+        outerPaddings.add(paddingBuffer);
+    }
+
+    /**
+     * Getter for patch's area.
+     *
+     * @return patch's area
+     */
+    public Rectangle getPatchArea() {
+        return patchArea;
+    }
+
+    /**
+     * Returns the simulation area including padding around the patch.
+     *
+     * @return simulation area (for `Person`'s context).
+     */
+    @Override
+    public Rectangle getGrid() {
+        return paddedArea;
+    }
 
 
+    @Override
+    public List<Rectangle> getObstacles() {
+        return this.scenario.getObstacles();
+    }
+
+    /**
+     * Returns all persons to be considered when simulating the person.
+     * In this case, also people in the padding around the patch.
+     *
+     * @return All persons to be considered when simulating the person.
+     */
+    @Override
+    public List<Person> getPopulation() {
+        return combinedPopulation;
+    }
+
+
+    /**
+     * Does simulation on the patch.
+     * Does synchronization with `PaddingBuffer`'s after each cycleDuration ticks.
+     * Sends statistics when all ticks of the scenario are simulated.
+     */
+    @Override
+    public void run() {
+        for (int tickNumber = 0; tickNumber < this.scenario.getTicks(); tickNumber++) {
+            if (tickNumber % cycleDuration == 0) {
+                doSynchronization();
+            }
+            validator.onPatchTick(tickNumber, patchId);
+            this.tick(tickNumber);
+        }
     }
 
     private void initializeStatistics() {
@@ -45,8 +140,9 @@ public class Patch implements Simulation, Context {
         }
     }
 
-    public void tick() {
+    private void tick(int tickNumber) {
         for (Person person : combinedPopulation) {
+            validator.onPersonTick(tickNumber, patchId, person.getId());
             person.tick();
         }
         // bust the ghosts of all persons
@@ -112,33 +208,6 @@ public class Patch implements Simulation, Context {
         }
     }
 
-    public void addInnerPadding(PaddingBuffer paddingBuffer) {
-        innerPaddings.add(paddingBuffer);
-    }
-
-    public void addOuterPadding(PaddingBuffer paddingBuffer) {
-        outerPaddings.add(paddingBuffer);
-    }
-
-    public Rectangle getPatchArea() {
-        return patchArea;
-    }
-
-
-    @Override
-    public Rectangle getGrid() {
-        return paddedArea;
-    }
-
-    @Override
-    public List<Rectangle> getObstacles() {
-        return this.scenario.getObstacles();
-    }
-
-    @Override
-    public List<Person> getPopulation() {
-        return combinedPopulation;
-    }
 
     private void extendStatistics() {
         // we collect statistics based on the current SI²R values
@@ -172,21 +241,5 @@ public class Patch implements Simulation, Context {
         }
 
         this.extendStatistics();
-    }
-
-    @Override
-    public Output getOutput() {
-        return new Output(this.scenario, this.trace, this.statistics);
-    }
-
-    // Note that since tick starts with 0, synchronization will happen as the first thing.
-    @Override
-    public void run() {
-        for (int tick = 0; tick < this.scenario.getTicks(); tick++) {
-            if (tick % cycleDuration == 0) {
-                doSynchronization();
-            }
-            this.tick();
-        }
     }
 }
