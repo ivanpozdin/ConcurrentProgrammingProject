@@ -77,6 +77,21 @@ public class Utils {
         return rectangles;
     }
 
+    /**
+     * Computes a padded area around a given rectangle, constrained by a grid.
+     *
+     * @param padding The padding size to add around the rectangle.
+     * @param area    The original rectangle to pad.
+     * @param grid    The grid rectangle to constrain the padded area.
+     * @return A new rectangle representing the padded area, intersected with the grid.
+     */
+    static public Rectangle getPaddedArea(int padding, Rectangle area, Rectangle grid) {
+        XY topLeft = area.getTopLeft().add(-padding);
+        XY size = area.getSize().add(2 * padding);
+
+        return new Rectangle(topLeft, size).intersect(grid);
+    }
+
     static private class PatchesIterator implements Iterator<Rectangle> {
 
         private final Scenario scenario;
