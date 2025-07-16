@@ -60,6 +60,7 @@ public class Patch implements Runnable, Context {
         this.validator = validator;
 
         this.initializeStatistics();
+        this.extendOutput();
         this.combinedPopulation = new ArrayList<>();
     }
 
@@ -96,7 +97,7 @@ public class Patch implements Runnable, Context {
      * @return patch's padded area
      */
     public Rectangle getPaddedArea() {
-        return patchArea;
+        return paddedArea;
     }
 
     /**

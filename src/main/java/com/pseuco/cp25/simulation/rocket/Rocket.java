@@ -26,6 +26,8 @@ public class Rocket implements Simulation {
     Validator validator;
     private List<TraceEntry> totalTrace;
 
+    private final int statsLength;
+
     /**
      * Constructs a rocket with the given parameters.
      *
@@ -46,14 +48,15 @@ public class Rocket implements Simulation {
      * @param validator The validator to be called.
      */
     public Rocket(Scenario scenario, int padding, Validator validator) throws InsufficientPaddingException {
+        this.scenario = scenario;
+        this.padding = padding;
+        this.validator = validator;
+        this.statsLength = scenario.getTicks() + 1;
+
         this.cycleDuration = getTicks();
         if (cycleDuration == 0) {
             throw new InsufficientPaddingException(padding);
         }
-
-        this.scenario = scenario;
-        this.padding = padding;
-        this.validator = validator;
 
         populate();
         createPatches();
@@ -152,7 +155,10 @@ public class Rocket implements Simulation {
 
             for (Patch innerPatch : patches) {
                 if (innerPatch == outerPatch) continue;
-                if (!innerPatch.getPatchArea().overlaps(outerPatch.getPaddedArea())) continue;
+                if (!innerPatch.getPatchArea().overlaps(outerPatch.getPaddedArea())) {
+                    System.out.println(innerPatch.getPatchArea() + " " + outerPatch.getPaddedArea());
+                    continue;
+                }
 
                 Rectangle intersectionOfPaddingAndPatch =
                         outerPatch.getPaddedArea().intersect(innerPatch.getPatchArea());
@@ -167,20 +173,20 @@ public class Rocket implements Simulation {
     }
 
     private void collectTraces() {
-        List<List<PersonInfoWithId>> trace = new ArrayList<>(scenario.getTicks());
-        for (int i = 0; i < scenario.getTicks(); i++) {
+        List<List<PersonInfoWithId>> trace = new ArrayList<>(statsLength);
+        for (int i = 0; i < statsLength; i++) {
             trace.add(new ArrayList<>());
         }
         for (Patch patch : patches) {
             List<List<PersonInfoWithId>> patchTrace = patch.getTrace();
 
-            assert (patchTrace.size() == scenario.getTicks());
+            assert (patchTrace.size() == statsLength);
 
-            for (int i = 0; i < scenario.getTicks(); i++) {
+            for (int i = 0; i < statsLength; i++) {
                 trace.get(i).addAll(patchTrace.get(i));
             }
         }
-        for (int i = 0; i < scenario.getTicks(); i++) {
+        for (int i = 0; i < statsLength; i++) {
             trace.get(i).sort(Comparator.comparing(PersonInfoWithId::id));
         }
         totalTrace =
@@ -190,8 +196,8 @@ public class Rocket implements Simulation {
 
     private void collectStatistics() {
         for (String key : this.scenario.getQueries().keySet()) {
-            List<Statistics> initializedArray = new ArrayList<>(scenario.getTicks());
-            for (int i = 0; i < scenario.getTicks(); i++) {
+            List<Statistics> initializedArray = new ArrayList<>(statsLength);
+            for (int i = 0; i < statsLength; i++) {
                 initializedArray.add(new Statistics(0, 0, 0, 0));
             }
 
