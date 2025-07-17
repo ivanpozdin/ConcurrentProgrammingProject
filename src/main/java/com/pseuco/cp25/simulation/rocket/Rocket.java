@@ -75,7 +75,7 @@ public class Rocket implements Simulation {
         while (position < padding) {
             if (position == -1)
                 // the border-crossing scenario
-                position += infectiousRadius + 2;
+                position += infectiousRadius + 3;
             else
                 // otherwise just move and infect
                 position += infectiousRadius + 1;
