@@ -67,7 +67,7 @@ public class Rocket implements Simulation {
         int infectiousRadius = scenario.getParameters().getInfectionRadius();
         int incubationTime = scenario.getParameters().getIncubationTime();
 
-        if (infectiousRadius + 1 >= padding) return 0;
+        if (infectiousRadius + 2 >= padding) return 0;
 
         int ticks = 0;
         int position = -1;
