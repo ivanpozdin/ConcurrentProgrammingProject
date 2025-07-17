@@ -158,6 +158,10 @@ public class Rocket implements Simulation {
 
                 Rectangle intersectionOfPaddingAndPatch =
                         outerPatch.getPaddedArea().intersect(innerPatch.getPatchArea());
+
+                if (!com.pseuco.cp25.simulation.common.Utils.mayPropagateFrom(scenario,
+                        intersectionOfPaddingAndPatch, outerPatch.getPatchArea())) continue;
+
                 PaddingBuffer paddingBuffer =
                         new PaddingBuffer(intersectionOfPaddingAndPatch);
 
