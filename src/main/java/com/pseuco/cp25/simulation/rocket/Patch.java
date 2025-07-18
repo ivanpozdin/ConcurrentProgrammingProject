@@ -138,10 +138,10 @@ public class Patch implements Runnable, Context {
     @Override
     public void run() {
         for (int tickNumber = 0; tickNumber < this.scenario.getTicks(); tickNumber++) {
+            validator.onPatchTick(tickNumber, patchId);
             if (tickNumber % cycleDuration == 0) {
                 doSynchronization();
             }
-            validator.onPatchTick(tickNumber, patchId);
             this.tick(tickNumber);
         }
     }
@@ -179,7 +179,7 @@ public class Patch implements Runnable, Context {
             person.tick();
         }
         // bust the ghosts of all persons
-        this.combinedPopulation.stream().forEach(Person::bustGhost);
+        this.combinedPopulation.forEach(Person::bustGhost);
 
         // now compute how the infection spreads between the combinedPopulation
         for (int i = 0; i < this.combinedPopulation.size(); i++) {
