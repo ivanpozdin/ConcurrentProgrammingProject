@@ -141,6 +141,9 @@ public class Patch implements Runnable, Context {
             if (tickNumber % cycleDuration == 0) {
                 doSynchronization();
             }
+            if (Thread.interrupted()) {
+                throw new IllegalStateException("Thread was interrupted unexpectedly.");
+            }
             validator.onPatchTick(tickNumber, patchId);
             this.tick(tickNumber);
         }
@@ -175,6 +178,9 @@ public class Patch implements Runnable, Context {
 
     private void tick(int tickNumber) {
         for (Person person : combinedPopulation) {
+            if (Thread.interrupted()) {
+                throw new IllegalStateException("Thread was interrupted unexpectedly.");
+            }
             validator.onPersonTick(tickNumber, patchId, person.getId());
             person.tick();
         }
