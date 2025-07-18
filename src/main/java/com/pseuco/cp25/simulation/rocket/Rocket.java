@@ -63,35 +63,21 @@ public class Rocket implements Simulation {
     }
 
     private int getTicks() {
-        assert scenario != null;
-        int infectiousRadius = scenario.getParameters().getInfectionRadius();
-        int incubationTime = scenario.getParameters().getIncubationTime();
-
-        if (infectiousRadius + 1 >= padding) return 0;
-
-        int ticks = 0;
-        int position = -1;
-
-        while (position < padding) {
-            if (position == -1)
-                // the border-crossing scenario
-                position += infectiousRadius + 2;
-            else
-                // otherwise just move and infect
-                position += infectiousRadius + 1;
-
-            // -1 to compensate for 0-based indexing of position
-            if (position > padding - 1) break;
-
-            ticks++;
-
-            for (int i = 0; i < incubationTime - 1; i++) {
-                position++;
-                if (position > padding - 1) return ticks;
-                ticks++;
-            }
+        int t = 1;
+        while (padding >= movementUncertainty(t) + infectionUncertainty(t)) {
+            t++;
         }
-        return ticks;
+        return t - 1;
+    }
+
+    private int movementUncertainty(int ticks) {
+        return 1 + ticks;
+    }
+
+    private int infectionUncertainty(int ticks) {
+        int incubationTime = scenario.getParameters().getIncubationTime();
+        int radius = scenario.getParameters().getInfectionRadius();
+        return Math.ceilDiv(ticks, incubationTime) * radius;
     }
 
     @Override
