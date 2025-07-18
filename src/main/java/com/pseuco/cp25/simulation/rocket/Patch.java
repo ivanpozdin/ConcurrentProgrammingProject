@@ -24,6 +24,8 @@ public class Patch implements Runnable, Context {
     private final Map<String, List<Statistics>> statistics = new HashMap<>();
     private final List<List<PersonInfoWithId>> trace = new ArrayList<>();
 
+    private final List<Rectangle> obstaclesInPaddedArea;
+
     private final int patchId;
     private final Validator validator;
     private List<Person> patchPopulation;
@@ -59,6 +61,9 @@ public class Patch implements Runnable, Context {
         this.initializeStatistics();
         this.extendOutput();
         this.combinedPopulation = new ArrayList<>();
+
+        obstaclesInPaddedArea =
+                scenario.getObstacles().stream().filter(obstacle -> obstacle.overlaps(paddedArea)).toList();
     }
 
     /**
@@ -110,7 +115,7 @@ public class Patch implements Runnable, Context {
 
     @Override
     public List<Rectangle> getObstacles() {
-        return this.scenario.getObstacles();
+        return obstaclesInPaddedArea;
     }
 
     /**
@@ -208,7 +213,6 @@ public class Patch implements Runnable, Context {
         combinedPopulation.clear();
         readFromOuterPaddingsToCombinedPopulation();
         combinedPopulation.addAll(patchPopulation);
-        // Sort combined population each time 🤨
         combinedPopulation.sort(Comparator.comparing(Person::getId));
     }
 
