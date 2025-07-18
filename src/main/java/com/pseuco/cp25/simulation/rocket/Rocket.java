@@ -71,7 +71,7 @@ public class Rocket implements Simulation {
     }
 
     private int movementUncertainty(int ticks) {
-        return 1 + ticks;
+        return 2 * ticks;
     }
 
     private int infectionUncertainty(int ticks) {
