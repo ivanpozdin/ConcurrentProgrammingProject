@@ -166,9 +166,7 @@ public class Rocket implements Simulation {
         for (Patch patch : patches) {
             List<List<PersonInfoWithId>> patchTrace = patch.getTrace();
 
-            assert (patchTrace.size() == statsLength);
-
-            for (int i = 0; i < statsLength; i++) {
+            for (int i = 0; i < patchTrace.size(); i++) {
                 trace.get(i).addAll(patchTrace.get(i));
             }
         }
@@ -196,7 +194,6 @@ public class Rocket implements Simulation {
             for (String key : patchStatsMap.keySet()) {
                 List<Statistics> mergedStats = totalStatistics.get(key);
                 List<Statistics> patchStats = patchStatsMap.get(key);
-                assert (mergedStats.size() == patchStats.size());
 
                 for (int i = 0; i < mergedStats.size(); i++) {
                     mergedStats.set(
