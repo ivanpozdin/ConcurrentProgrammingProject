@@ -159,6 +159,11 @@ public class Rocket implements Simulation {
     }
 
     private void collectTraces() {
+        if (!scenario.getTrace()) {
+            totalTrace = new ArrayList<>();
+            return;
+        }
+
         List<List<PersonInfoWithId>> trace = new ArrayList<>(statsLength);
         for (int i = 0; i < statsLength; i++) {
             trace.add(new ArrayList<>());
