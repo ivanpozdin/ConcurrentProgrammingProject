@@ -31,7 +31,7 @@ public class PaddingBuffer {
      *
      * @param context The `Context` object used for cloning `Person` objects.
      * @return The list of `Person` objects stored in the buffer.
-     * @throws InterruptedException if the thread is interrupted while waiting.
+     * @throws IllegalStateException if the thread is interrupted while waiting.
      */
     public synchronized List<Person> read(Context context) {
         while (!hasSomethingToRead) try {
@@ -52,7 +52,7 @@ public class PaddingBuffer {
      * This method blocks if the buffer already contains data until it is read.
      *
      * @param population The list of `Person` objects to store in the buffer.
-     * @throws InterruptedException if the thread is interrupted while waiting.
+     * @throws IllegalStateException if the thread is interrupted while waiting.
      */
     public synchronized void write(List<Person> population) {
         while (hasSomethingToRead) {
