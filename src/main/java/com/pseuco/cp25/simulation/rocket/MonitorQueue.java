@@ -30,9 +30,8 @@ public class MonitorQueue<T> {
     /**
      * Returns the head of the queue and removes it.
      * @return head of the queue.
-     * @throws InterruptedException
      */
-    public synchronized T dequeue() throws InterruptedException {
+    public synchronized T dequeue() {
         while (queue.isEmpty()) try {
             this.wait();
         } catch (InterruptedException e) {

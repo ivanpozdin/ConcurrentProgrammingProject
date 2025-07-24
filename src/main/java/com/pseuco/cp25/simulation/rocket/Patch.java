@@ -14,20 +14,27 @@ import java.util.stream.Collectors;
  * PaddingBuffers, and communicating statistics at the end.
  */
 public class Patch implements Runnable, Context {
+    private final int patchId;
+    private final int cycleDuration;
+    private final Scenario scenario;
+    private final Map<String, Query> queriesInPaddedArea = new HashMap<>();
+    private final List<Rectangle> obstaclesInPaddedArea;
+
+    // Patch-specific fields
     private final List<PaddingBuffer> innerPaddings = new ArrayList<>();
     private final List<PaddingBuffer> outerPaddings = new ArrayList<>();
-    private final int cycleDuration;
-    private final List<Person> combinedPopulation;
     private final Rectangle patchArea;
     private final Rectangle paddedArea;
-    private final Scenario scenario;
+
+    private final List<Person> combinedPopulation;
+    private List<Person> patchPopulation;
+
+    // Statistics-related fields
     private final Map<String, List<Statistics>> statistics = new HashMap<>();
     private final List<List<PersonInfoWithId>> trace = new ArrayList<>();
-    private final List<Rectangle> obstaclesInPaddedArea;
-    private final int patchId;
+    private final MonitorQueue<OutputEntry> outputQueue;
+
     private final Validator validator;
-    private final Map<String, Query> queriesInPaddedArea = new HashMap<>();
-    private List<Person> patchPopulation;
 
     /**
      * Constructs a new Patch instance.
@@ -47,7 +54,8 @@ public class Patch implements Runnable, Context {
             int cycleDuration,
             Scenario scenario,
             int patchId,
-            Validator validator
+            Validator validator,
+            MonitorQueue<OutputEntry> outputQueue
     ) {
         this.patchPopulation = patchPopulation.stream().map(person -> person.clone(this)).toList();
         this.patchArea = patchArea;
@@ -56,6 +64,7 @@ public class Patch implements Runnable, Context {
         this.scenario = scenario;
         this.patchId = patchId;
         this.validator = validator;
+        this.outputQueue = outputQueue;
 
         obstaclesInPaddedArea =
                 scenario.getObstacles().stream().filter(obstacle -> obstacle.overlaps(paddedArea)).toList();
@@ -67,11 +76,8 @@ public class Patch implements Runnable, Context {
         });
 
         this.initializeStatistics();
-        this.extendOutput();
+        this.extendOutput(0);
         this.combinedPopulation = new ArrayList<>();
-
-
-
     }
 
     /**
@@ -177,8 +183,10 @@ public class Patch implements Runnable, Context {
         return trace;
     }
 
+    /**
+     *  Initialize the map used to collect the necessary statistics
+     */
     private void initializeStatistics() {
-        // we initialize the map we use to collect the necessary statistics
         for (String queryKey : queriesInPaddedArea.keySet()) {
             this.statistics.put(queryKey, new ArrayList<>());
         }
@@ -219,7 +227,9 @@ public class Patch implements Runnable, Context {
         this.patchPopulation = combinedPopulation.stream().filter(person -> patchArea.contains(person.getPosition())).toList();
 
         // we need to collect statistics and extend the recorded trace
-        this.extendOutput();
+        // +1 to offset 0-based tick counting. 0th tick reserved for state of simulation
+        // and is done before simulation start in constructor
+        this.extendOutput(tickNumber + 1);
     }
 
     private void doSynchronization() {
@@ -256,12 +266,11 @@ public class Patch implements Runnable, Context {
         }
     }
 
-
-    private void extendStatistics() {
-        // we collect statistics based on the current SI²R values
+    private Map<String, Statistics> getTickStatistics() {
+        Map<String, Statistics> tickStatistics = new HashMap<>();
         for (Map.Entry<String, Query> entry : queriesInPaddedArea.entrySet()) {
             final Query query = entry.getValue();
-            this.statistics.get(entry.getKey()).add(new Statistics(
+            Statistics statisticsForQuery = new Statistics(
                     this.patchPopulation.stream().filter(
                             (Person person) -> person.isSusceptible()
                                     && query.getArea().contains(person.getPosition())
@@ -278,22 +287,32 @@ public class Patch implements Runnable, Context {
                             (Person person) -> person.isRecovered()
                                     && query.getArea().contains(person.getPosition())
                     ).count()
-            ));
+            );
+            tickStatistics.put(entry.getKey(), statisticsForQuery);
         }
+
+        return tickStatistics;
     }
 
-    private void extendOutput() {
-        // we extend the statists and the trace for the current tick
-        if (this.scenario.getTrace()) {
-            this.trace.add(
-                    this.patchPopulation.stream()
-                            .map(person ->
-                                    new PersonInfoWithId(person.getInfo(), person.getId())
-                            )
-                            .collect(Collectors.toList())
-            );
+    private List<PersonInfoWithId> getTickTrace() {
+        if (!this.scenario.getTrace()) {
+            return List.of();
         }
 
-        this.extendStatistics();
+        return this.patchPopulation.stream()
+                        .map(person ->
+                                new PersonInfoWithId(person.getInfo(), person.getId())
+                        )
+                        .collect(Collectors.toList());
+    }
+
+    private void extendOutput(int tick) {
+        outputQueue.enqueue(
+                new OutputEntry(
+                        tick,
+                        getTickStatistics(),
+                        getTickTrace()
+                )
+        );
     }
 }

@@ -19,13 +19,18 @@ public class Rocket implements Simulation {
     private final int cycleDuration;
     private final Scenario scenario;
     private final int padding;
-    private final Map<String, List<Statistics>> totalStatistics = new HashMap<>();
-    private final List<Person> initialPopulation = new ArrayList<>();
     private final List<Patch> patches = new ArrayList<>();
-    private final List<Thread> threads = new ArrayList<>();
+    private final List<Person> initialPopulation = new ArrayList<>();
+
+    // Statistics-related fields
     private final int statsLength;
+    private final Map<String, List<Statistics>> totalStatistics = new HashMap<>();
+    private TraceEntry[] totalTrace;
+    private final MonitorQueue<OutputEntry> outputQueue = new MonitorQueue<>();
+    private final int[] outputCounters;
+
+    private final List<Thread> threads = new ArrayList<>();
     Validator validator;
-    private List<TraceEntry> totalTrace;
 
     /**
      * Constructs a rocket with the given parameters.
@@ -51,6 +56,8 @@ public class Rocket implements Simulation {
         this.padding = padding;
         this.validator = validator;
         this.statsLength = scenario.getTicks() + 1;
+        this.outputCounters = new int[statsLength];
+        Arrays.fill(outputCounters, 0);
 
         this.cycleDuration = getTicks();
         if (cycleDuration == 0) {
@@ -60,6 +67,13 @@ public class Rocket implements Simulation {
         populate();
         createPatches();
         createPaddings();
+        initializeStatistics();
+
+        if (scenario.getTrace()) {
+            totalTrace = new TraceEntry[statsLength];
+        } else {
+            totalTrace = new TraceEntry[0];
+        }
     }
 
     private int getTicks() {
@@ -82,7 +96,7 @@ public class Rocket implements Simulation {
 
     @Override
     public Output getOutput() {
-        return new Output(this.scenario, this.totalTrace, this.totalStatistics);
+        return new Output(this.scenario, Arrays.asList(totalTrace), this.totalStatistics);
     }
 
     @Override
@@ -93,6 +107,8 @@ public class Rocket implements Simulation {
             thread.start();
         }
 
+        collectOutput();
+
         for (Thread thread : threads) {
             try {
                 thread.join();
@@ -100,8 +116,6 @@ public class Rocket implements Simulation {
                 throw new RuntimeException(e);
             }
         }
-        collectTraces();
-        collectStatistics();
     }
 
     private void populate() {
@@ -129,7 +143,8 @@ public class Rocket implements Simulation {
                             cycleDuration,
                             scenario,
                             patches.size(),
-                            validator
+                            validator,
+                            outputQueue
                     )
             );
         }
@@ -158,34 +173,7 @@ public class Rocket implements Simulation {
 
     }
 
-    private void collectTraces() {
-        if (!scenario.getTrace()) {
-            totalTrace = new ArrayList<>();
-            return;
-        }
-
-        List<List<PersonInfoWithId>> trace = new ArrayList<>(statsLength);
-        for (int i = 0; i < statsLength; i++) {
-            trace.add(new ArrayList<>());
-        }
-        for (Patch patch : patches) {
-            List<List<PersonInfoWithId>> patchTrace = patch.getTrace();
-
-            assert (patchTrace.size() == statsLength);
-
-            for (int i = 0; i < statsLength; i++) {
-                trace.get(i).addAll(patchTrace.get(i));
-            }
-        }
-        for (int i = 0; i < statsLength; i++) {
-            trace.get(i).sort(Comparator.comparing(PersonInfoWithId::id));
-        }
-        totalTrace =
-                trace.stream().map(list -> new TraceEntry(list.stream().map(PersonInfoWithId::personInfo).toList())).toList();
-
-    }
-
-    private void collectStatistics() {
+    private void initializeStatistics() {
         for (String key : this.scenario.getQueries().keySet()) {
             List<Statistics> initializedArray = new ArrayList<>(statsLength);
             for (int i = 0; i < statsLength; i++) {
@@ -194,25 +182,47 @@ public class Rocket implements Simulation {
 
             totalStatistics.put(key, initializedArray);
         }
+    }
 
-        for (Patch patch : patches) {
-            Map<String, List<Statistics>> patchStatsMap = patch.getStatistics();
-
-            for (String key : patchStatsMap.keySet()) {
-                List<Statistics> mergedStats = totalStatistics.get(key);
-                List<Statistics> patchStats = patchStatsMap.get(key);
-                assert (mergedStats.size() == patchStats.size());
-
-                for (int i = 0; i < patchStats.size(); i++) {
-                    mergedStats.set(
-                            i,
-                            Utils.mergeStatistics(
-                                    mergedStats.get(i),
-                                    patchStats.get(i)
-                            )
-                    );
-                }
+    private void collectOutput() {
+        // Collect output
+        List<List<PersonInfoWithId>> trace = new ArrayList<>(statsLength);
+        if (scenario.getTrace()) {
+            for (int i = 0; i < statsLength; i++) {
+                trace.add(new ArrayList<>());
             }
+        }
+
+        for (int i = 0; i < statsLength * patches.size(); i++) {
+            OutputEntry entry = outputQueue.dequeue();
+            outputCounters[entry.tick()]++;
+
+            // Merge statistics
+            collectPatchStatistics(entry.statisticsForTick(), entry.tick());
+
+            // If trace disabled - skip
+            if (!scenario.getTrace()) {
+                continue;
+            }
+
+            // Process traces
+            trace.get(entry.tick()).addAll(entry.traceForTick());
+
+            if (outputCounters[entry.tick()] == patches.size()) {
+                List<PersonInfoWithId> sorted = trace.get(entry.tick());
+                sorted.sort(Comparator.comparing(PersonInfoWithId::id));
+                TraceEntry traceEntry = new TraceEntry(sorted.stream().map(PersonInfoWithId::personInfo).toList());
+                totalTrace[entry.tick()] = traceEntry;
+            }
+        }
+    }
+
+    private void collectPatchStatistics(Map<String, Statistics> patchStatsMap, int tick) {
+        for (String key : patchStatsMap.keySet()) {
+            Statistics mergedStatistics = Utils.mergeStatistics(
+                    totalStatistics.get(key).get(tick), patchStatsMap.get(key)
+            );
+            totalStatistics.get(key).set(tick, mergedStatistics);
         }
     }
 }
