@@ -23,11 +23,10 @@ public class Patch implements Runnable, Context {
     private final Scenario scenario;
     private final Map<String, List<Statistics>> statistics = new HashMap<>();
     private final List<List<PersonInfoWithId>> trace = new ArrayList<>();
-
     private final List<Rectangle> obstaclesInPaddedArea;
-
     private final int patchId;
     private final Validator validator;
+    private final Map<String, Query> queriesInPaddedArea = new HashMap<>();
     private List<Person> patchPopulation;
 
     /**
@@ -58,12 +57,21 @@ public class Patch implements Runnable, Context {
         this.patchId = patchId;
         this.validator = validator;
 
+        obstaclesInPaddedArea =
+                scenario.getObstacles().stream().filter(obstacle -> obstacle.overlaps(paddedArea)).toList();
+
+        scenario.getQueries().forEach((key, query) -> {
+            if (query.getArea().overlaps(paddedArea)) {
+                queriesInPaddedArea.put(key, query);
+            }
+        });
+
         this.initializeStatistics();
         this.extendOutput();
         this.combinedPopulation = new ArrayList<>();
 
-        obstaclesInPaddedArea =
-                scenario.getObstacles().stream().filter(obstacle -> obstacle.overlaps(paddedArea)).toList();
+
+
     }
 
     /**
@@ -171,7 +179,7 @@ public class Patch implements Runnable, Context {
 
     private void initializeStatistics() {
         // we initialize the map we use to collect the necessary statistics
-        for (String queryKey : this.scenario.getQueries().keySet()) {
+        for (String queryKey : queriesInPaddedArea.keySet()) {
             this.statistics.put(queryKey, new ArrayList<>());
         }
     }
@@ -185,7 +193,7 @@ public class Patch implements Runnable, Context {
             person.tick();
         }
         // bust the ghosts of all persons
-        this.combinedPopulation.stream().forEach(Person::bustGhost);
+        this.combinedPopulation.forEach(Person::bustGhost);
 
         // now compute how the infection spreads between the combinedPopulation
         for (int i = 0; i < this.combinedPopulation.size(); i++) {
@@ -251,7 +259,7 @@ public class Patch implements Runnable, Context {
 
     private void extendStatistics() {
         // we collect statistics based on the current SI²R values
-        for (Map.Entry<String, Query> entry : this.scenario.getQueries().entrySet()) {
+        for (Map.Entry<String, Query> entry : queriesInPaddedArea.entrySet()) {
             final Query query = entry.getValue();
             this.statistics.get(entry.getKey()).add(new Statistics(
                     this.patchPopulation.stream().filter(

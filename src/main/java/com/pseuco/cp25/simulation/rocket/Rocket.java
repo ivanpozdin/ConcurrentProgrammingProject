@@ -203,7 +203,7 @@ public class Rocket implements Simulation {
                 List<Statistics> patchStats = patchStatsMap.get(key);
                 assert (mergedStats.size() == patchStats.size());
 
-                for (int i = 0; i < mergedStats.size(); i++) {
+                for (int i = 0; i < patchStats.size(); i++) {
                     mergedStats.set(
                             i,
                             Utils.mergeStatistics(
