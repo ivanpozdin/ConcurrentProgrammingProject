@@ -26,7 +26,7 @@ public class Rocket implements Simulation {
     private final int statsLength;
     private final Map<String, List<Statistics>> totalStatistics = new HashMap<>();
     private final TraceEntry[] totalTrace;
-    private final MonitorQueue<OutputEntry> outputQueue = new MonitorQueue<>();
+    private final List<MonitorQueue<OutputEntry>> outputQueues;
     private final int[] outputCounters;
 
     private final List<Thread> threads = new ArrayList<>();
@@ -58,6 +58,7 @@ public class Rocket implements Simulation {
         this.statsLength = scenario.getTicks() + 1;
         this.outputCounters = new int[statsLength];
         Arrays.fill(outputCounters, 0);
+        outputQueues = new ArrayList<>(scenario.getNumberOfPatches());
 
         this.cycleDuration = getTicks();
         if (cycleDuration == 0) {
@@ -134,6 +135,8 @@ public class Rocket implements Simulation {
         while (patchesIterator.hasNext()) {
             Rectangle patchArea = patchesIterator.next();
             Rectangle paddedArea = Utils.getPaddedArea(padding, patchArea, scenario.getGrid());
+            MonitorQueue<OutputEntry> outputQueueForPatch = new MonitorQueue<>();
+            outputQueues.add(outputQueueForPatch);
 
             List<Person> patchPopulation = initialPopulation.stream().filter(person -> patchArea.contains(person.getPosition())).toList();
             patches.add(
@@ -144,7 +147,7 @@ public class Rocket implements Simulation {
                             scenario,
                             patches.size(),
                             validator,
-                            outputQueue
+                            outputQueueForPatch
                     )
             );
         }
@@ -193,26 +196,28 @@ public class Rocket implements Simulation {
             }
         }
 
-        for (int i = 0; i < statsLength * patches.size(); i++) {
-            OutputEntry entry = outputQueue.dequeue();
-            outputCounters[entry.tick()]++;
+        for (int i = 0; i < statsLength; i++) {
+            for (MonitorQueue<OutputEntry> outputQueueForPatch : outputQueues) {
+                OutputEntry entry = outputQueueForPatch.dequeue();
+                outputCounters[entry.tick()]++;
 
-            // Merge statistics
-            collectPatchStatistics(entry.statisticsForTick(), entry.tick());
+                // Merge statistics
+                collectPatchStatistics(entry.statisticsForTick(), entry.tick());
 
-            // If trace disabled - skip
-            if (!scenario.getTrace()) {
-                continue;
-            }
+                // If trace disabled - skip
+                if (!scenario.getTrace()) {
+                    continue;
+                }
 
-            // Process traces
-            trace.get(entry.tick()).addAll(entry.traceForTick());
+                // Process traces
+                trace.get(entry.tick()).addAll(entry.traceForTick());
 
-            if (outputCounters[entry.tick()] == patches.size()) {
-                List<PersonInfoWithId> sorted = trace.get(entry.tick());
-                sorted.sort(Comparator.comparing(PersonInfoWithId::id));
-                TraceEntry traceEntry = new TraceEntry(sorted.stream().map(PersonInfoWithId::personInfo).toList());
-                totalTrace[entry.tick()] = traceEntry;
+                if (outputCounters[entry.tick()] == patches.size()) {
+                    List<PersonInfoWithId> sorted = trace.get(entry.tick());
+                    sorted.sort(Comparator.comparing(PersonInfoWithId::id));
+                    TraceEntry traceEntry = new TraceEntry(sorted.stream().map(PersonInfoWithId::personInfo).toList());
+                    totalTrace[entry.tick()] = traceEntry;
+                }
             }
         }
     }
