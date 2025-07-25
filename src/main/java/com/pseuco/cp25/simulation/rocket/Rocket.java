@@ -189,17 +189,14 @@ public class Rocket implements Simulation {
         for (int i = 0; i < statsLength; i++) {
             List<PersonInfoWithId> trace = new ArrayList<>();
 
-
-            for (int p = 0; p < outputQueues.size(); p++) {
-                OutputEntry entry = outputQueues.get(p).dequeue();
+            for (MonitorQueue<OutputEntry> outputQueue : outputQueues) {
+                OutputEntry entry = outputQueue.dequeue();
 
                 // Merge statistics
                 collectPatchStatistics(entry.statisticsForTick(), entry.tick());
 
                 // If trace disabled - skip
-                if (!scenario.getTrace()) {
-                    continue;
-                }
+                if (!scenario.getTrace()) continue;
 
                 // Process traces
 
@@ -209,13 +206,13 @@ public class Rocket implements Simulation {
                         entry.traceForTick(),
                         Comparator.comparing(PersonInfoWithId::id)
                 );
-
-                if (p == patches.size() - 1) {
-                    TraceEntry traceEntry = new TraceEntry(trace.stream().map(PersonInfoWithId::personInfo).toList());
-
-                    totalTrace.add(traceEntry);
-                }
             }
+
+            // If trace disabled - skip
+            if (!scenario.getTrace()) continue;
+
+            TraceEntry traceEntry = new TraceEntry(trace.stream().map(PersonInfoWithId::personInfo).toList());
+            totalTrace.add(traceEntry);
         }
     }
 
