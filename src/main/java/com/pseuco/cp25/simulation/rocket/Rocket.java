@@ -25,7 +25,7 @@ public class Rocket implements Simulation {
     // Statistics-related fields
     private final int statsLength;
     private final Map<String, List<Statistics>> totalStatistics = new HashMap<>();
-    private TraceEntry[] totalTrace;
+    private final TraceEntry[] totalTrace;
     private final MonitorQueue<OutputEntry> outputQueue = new MonitorQueue<>();
     private final int[] outputCounters;
 

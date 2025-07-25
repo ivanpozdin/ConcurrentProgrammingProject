@@ -25,16 +25,13 @@ public class Patch implements Runnable, Context {
     private final List<PaddingBuffer> outerPaddings = new ArrayList<>();
     private final Rectangle patchArea;
     private final Rectangle paddedArea;
-
-    private final List<Person> combinedPopulation;
-    private List<Person> patchPopulation;
-
     // Statistics-related fields
     private final Map<String, List<Statistics>> statistics = new HashMap<>();
     private final List<List<PersonInfoWithId>> trace = new ArrayList<>();
     private final MonitorQueue<OutputEntry> outputQueue;
-
     private final Validator validator;
+    private List<Person> combinedPopulation;
+    private List<Person> patchPopulation;
 
     /**
      * Constructs a new Patch instance.
@@ -184,7 +181,7 @@ public class Patch implements Runnable, Context {
     }
 
     /**
-     *  Initialize the map used to collect the necessary statistics
+     * Initialize the map used to collect the necessary statistics
      */
     private void initializeStatistics() {
         for (String queryKey : queriesInPaddedArea.keySet()) {
@@ -228,7 +225,7 @@ public class Patch implements Runnable, Context {
 
         // we need to collect statistics and extend the recorded trace
         // +1 to offset 0-based tick counting. 0th tick reserved for state of simulation
-        // and is done before simulation start in constructor
+        // and is done before the simulation's start in constructor
         this.extendOutput(tickNumber + 1);
     }
 
@@ -236,8 +233,9 @@ public class Patch implements Runnable, Context {
         synchronizeInnerPaddings();
         combinedPopulation.clear();
         readFromOuterPaddingsToCombinedPopulation();
-        combinedPopulation.addAll(patchPopulation);
-        combinedPopulation.sort(Comparator.comparing(Person::getId));
+
+        combinedPopulation = Utils.merge(combinedPopulation, patchPopulation,
+                Comparator.comparing(Person::getId));
     }
 
     private List<Person> extractPopulationInArea(Rectangle area) {
@@ -260,9 +258,17 @@ public class Patch implements Runnable, Context {
     }
 
     private void readFromOuterPaddingsToCombinedPopulation() {
+
         for (PaddingBuffer padding : outerPaddings) {
             List<Person> paddingPopulation = padding.read(this);
-            combinedPopulation.addAll(paddingPopulation);
+            if (combinedPopulation.isEmpty()) {
+                combinedPopulation = paddingPopulation;
+                continue;
+            }
+
+            combinedPopulation = Utils.merge(combinedPopulation, paddingPopulation,
+                    Comparator.comparing(Person::getId));
+
         }
     }
 
@@ -300,10 +306,10 @@ public class Patch implements Runnable, Context {
         }
 
         return this.patchPopulation.stream()
-                        .map(person ->
-                                new PersonInfoWithId(person.getInfo(), person.getId())
-                        )
-                        .collect(Collectors.toList());
+                .map(person ->
+                        new PersonInfoWithId(person.getInfo(), person.getId())
+                )
+                .collect(Collectors.toList());
     }
 
     private void extendOutput(int tick) {

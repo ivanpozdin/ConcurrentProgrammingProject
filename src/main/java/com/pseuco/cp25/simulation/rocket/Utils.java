@@ -5,7 +5,10 @@ import com.pseuco.cp25.model.Scenario;
 import com.pseuco.cp25.model.Statistics;
 import com.pseuco.cp25.model.XY;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Iterator;
+import java.util.List;
 
 /**
  * Some useful utilities for the concurrent implementation.
@@ -52,6 +55,41 @@ public class Utils {
                 stats1.getInfectious() + stats2.getInfectious(),
                 stats1.getRecovered() + stats2.getRecovered()
         );
+    }
+
+    /**
+     * Merges two sorted lists.
+     * As a return new list is created.
+     *
+     * @param list1 List to be merged.
+     * @param list2 List to be merged.
+     * @param cmp   Comparator on the generic type T.
+     * @param <T>   Type of lists' elements.
+     * @return Returns merged list.
+     */
+    public static <T> List<T> merge(List<T> list1, List<T> list2, Comparator<T> cmp) {
+        List<T> resultList = new ArrayList<>(list1.size() + list2.size());
+        int i1 = 0, i2 = 0;
+        while (i1 < list1.size() && i2 < list2.size()) {
+
+            if (cmp.compare(list1.get(i1), list2.get(i2)) <= 0) {
+                resultList.add(list1.get(i1));
+                i1++;
+            } else {
+                resultList.add(list2.get(i2));
+                i2++;
+            }
+        }
+        // Add remaining elements (they are left in only one of the lists).
+        for (int i = i1; i < list1.size(); i++) {
+            resultList.add(list1.get(i));
+        }
+
+        for (int i = i2; i < list2.size(); i++) {
+            resultList.add(list2.get(i));
+        }
+
+        return resultList;
     }
 
     static private class PatchesIterator implements Iterator<Rectangle> {
@@ -111,4 +149,5 @@ public class Utils {
             return new Rectangle(topLeft, bottomRight.sub(topLeft));
         }
     }
+
 }
