@@ -25,8 +25,8 @@ public class Patch implements Runnable, Context {
     private final List<PaddingBuffer> outerPaddings = new ArrayList<>();
     private final Rectangle patchArea;
     private final Rectangle paddedArea;
+
     // Statistics-related fields
-    private final Map<String, List<Statistics>> statistics = new HashMap<>();
     private final List<List<PersonInfoWithId>> trace = new ArrayList<>();
     private final MonitorQueue<OutputEntry> outputQueue;
     private final Validator validator;
@@ -72,7 +72,6 @@ public class Patch implements Runnable, Context {
             }
         });
 
-        this.initializeStatistics();
         this.extendOutput(0);
         this.combinedPopulation = new ArrayList<>();
     }
@@ -161,16 +160,6 @@ public class Patch implements Runnable, Context {
     }
 
     /**
-     * Returns the statistics collected during simulation.
-     * To be called after simulation is finished.
-     *
-     * @return The statistics collected during simulation.
-     */
-    public Map<String, List<Statistics>> getStatistics() {
-        return statistics;
-    }
-
-    /**
      * Returns the full trace collected during simulation.
      * To be called after simulation is finished.
      *
@@ -178,15 +167,6 @@ public class Patch implements Runnable, Context {
      */
     public List<List<PersonInfoWithId>> getTrace() {
         return trace;
-    }
-
-    /**
-     * Initialize the map used to collect the necessary statistics
-     */
-    private void initializeStatistics() {
-        for (String queryKey : queriesInPaddedArea.keySet()) {
-            this.statistics.put(queryKey, new ArrayList<>());
-        }
     }
 
     private void tick(int tickNumber) {
