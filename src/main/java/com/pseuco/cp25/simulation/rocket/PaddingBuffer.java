@@ -14,14 +14,14 @@ import java.util.List;
  */
 public class PaddingBuffer {
     private final Rectangle area;
-    private boolean hasSomethingToRead;
+    private boolean dataAvailable;
     private List<Person> population;
 
     /**
      * Constructs a new empty `PaddingBuffer`.
      */
     public PaddingBuffer(Rectangle area) {
-        hasSomethingToRead = false;
+        dataAvailable = false;
         this.area = area;
     }
 
@@ -34,14 +34,14 @@ public class PaddingBuffer {
      * @throws IllegalStateException if the thread is interrupted while waiting.
      */
     public synchronized List<Person> read(Context context) {
-        while (!hasSomethingToRead) try {
+        while (!dataAvailable) try {
             this.wait();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new IllegalStateException("Thread was interrupted unexpectedly during buffer write", e);
         }
 
-        hasSomethingToRead = false;
+        dataAvailable = false;
         this.notifyAll();
 
         return population.stream().map(person -> person.clone(context)).toList();
@@ -55,7 +55,7 @@ public class PaddingBuffer {
      * @throws IllegalStateException if the thread is interrupted while waiting.
      */
     public synchronized void write(List<Person> population) {
-        while (hasSomethingToRead) {
+        while (dataAvailable) {
             try {
                 this.wait();
             } catch (InterruptedException e) {
@@ -66,7 +66,7 @@ public class PaddingBuffer {
 
         this.population = population.stream().map(person -> person.clone(null)).toList();
 
-        hasSomethingToRead = true;
+        dataAvailable = true;
         this.notifyAll();
     }
 
