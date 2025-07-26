@@ -74,6 +74,11 @@ public class Rocket implements Simulation {
         }
     }
 
+    /**
+     * Calculates cycle's duration.
+     *
+     * @return Cycle duration.
+     */
     private int getTicks() {
         int t = 1;
         while (padding >= movementUncertainty(t) + infectionUncertainty(t)) {
@@ -97,6 +102,11 @@ public class Rocket implements Simulation {
         return new Output(this.scenario, totalTrace, this.totalStatistics);
     }
 
+    /**
+     * Runs the simulation.
+     * Starts all patches' threads.
+     * Collects patches' output while they simulate.
+     */
     @Override
     public void run() {
         for (Patch patch : patches) {
@@ -126,6 +136,13 @@ public class Rocket implements Simulation {
         }
     }
 
+    /**
+     * Iterates over patches as defined in the scenario and creates associated Patch objects.
+     * Stores patch objects in the list of patches.
+     * For each patch creates a separate output queue that patch can write output to after every
+     * tick.
+     * Stores the queue into a list of queues to later retrieve outputs.
+     */
     private void createPatches() {
         Iterator<Rectangle> patchesIterator = Utils.getPatches(scenario);
 
@@ -150,6 +167,12 @@ public class Rocket implements Simulation {
         }
     }
 
+    /**
+     * Iterates over patches created via createPatches() and initializes for each of them
+     * associated paddings intersected with other patches.
+     * Stores created PatchBuffers representing pieces of geometric padding into correspoding
+     * innerPaddings or outerPaddings of the appropriate patch.
+     */
     private void createPaddings() {
         for (Patch outerPatch : patches) {
 
@@ -173,6 +196,10 @@ public class Rocket implements Simulation {
 
     }
 
+    /**
+     * Fills a statistics list with an empty Statistics object to later merge them with actual
+     * statistics retrieved from the patches.
+     */
     private void initializeStatistics() {
         for (String key : this.scenario.getQueries().keySet()) {
             List<Statistics> initializedArray = new ArrayList<>(statsLength);
@@ -184,6 +211,9 @@ public class Rocket implements Simulation {
         }
     }
 
+    /**
+     * Collects output from output queues and merges them into final output.
+     */
     private void collectOutput() {
 
         for (int i = 0; i < statsLength; i++) {
@@ -216,6 +246,12 @@ public class Rocket implements Simulation {
         }
     }
 
+    /**
+     * Updates totalStatistics with provided statistic.
+     *
+     * @param patchStatsMap statistics from some patch to merge with totalStatistics.
+     * @param tick          Tick for which statistics is provided.
+     */
     private void collectPatchStatistics(Map<String, Statistics> patchStatsMap, int tick) {
         for (String key : patchStatsMap.keySet()) {
             Statistics mergedStatistics = Utils.mergeStatistics(

@@ -11,7 +11,7 @@ import java.util.stream.Collectors;
 /**
  * Represents a patch, which is a part of the simulation grid.
  * Handles simulation of its part of the population, synchronization with its
- * PaddingBuffers, and communicating statistics at the end.
+ * PaddingBuffers, and communicating output via queue.
  */
 public class Patch implements Runnable, Context {
     private final int patchId;
@@ -143,7 +143,6 @@ public class Patch implements Runnable, Context {
     /**
      * Does simulation on the patch.
      * Does synchronization with `PaddingBuffer`'s after each cycleDuration ticks.
-     * Sends statistics when all ticks of the scenario are simulated.
      */
     @Override
     public void run() {
@@ -218,6 +217,12 @@ public class Patch implements Runnable, Context {
                 Comparator.comparing(Person::getId));
     }
 
+    /**
+     * Filters persons in specific part of the patch area.
+     *
+     * @param area Area where to look for people.
+     * @return Returns people located in given area.
+     */
     private List<Person> extractPopulationInArea(Rectangle area) {
         List<Person> populationInArea = new ArrayList<>();
 
@@ -229,6 +234,9 @@ public class Patch implements Runnable, Context {
         return populationInArea;
     }
 
+    /**
+     * Writes up-to date information about the population in inner paddings.
+     */
     private void synchronizeInnerPaddings() {
         for (PaddingBuffer padding : innerPaddings) {
             List<Person> populationInPadding = extractPopulationInArea(padding.getArea());
@@ -237,6 +245,10 @@ public class Patch implements Runnable, Context {
         }
     }
 
+    /**
+     * Retrieves new population information for each of the outer paddings.
+     * Stores it into `combinedPopulation`.
+     */
     private void readFromOuterPaddingsToCombinedPopulation() {
 
         for (PaddingBuffer padding : outerPaddings) {
@@ -252,6 +264,9 @@ public class Patch implements Runnable, Context {
         }
     }
 
+    /**
+     * @return Returns statistics for current tick.
+     */
     private Map<String, Statistics> getTickStatistics() {
         Map<String, Statistics> tickStatistics = new HashMap<>();
         for (Map.Entry<String, Query> entry : queriesInPaddedArea.entrySet()) {
@@ -280,6 +295,9 @@ public class Patch implements Runnable, Context {
         return tickStatistics;
     }
 
+    /**
+     * @return Returns trace for current tick.
+     */
     private List<PersonInfoWithId> getTickTrace() {
         if (!this.scenario.getTrace()) {
             return List.of();
@@ -292,6 +310,10 @@ public class Patch implements Runnable, Context {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Sends output for given tick to output queue.
+     * @param tick Tick for which output is sent.
+     */
     private void extendOutput(int tick) {
         outputQueue.enqueue(
                 new OutputEntry(

@@ -4,7 +4,8 @@ import java.util.ArrayDeque;
 import java.util.Queue;
 
 /**
- * A simple queue supporting only enqueuing(adding) and dequeuing(removing) elements.
+ * A simple monitor queue supporting only enqueuing(adding) and dequeuing(removing) elements
+ * only via synchronized methods.
  *
  * @param <T>
  */
@@ -20,6 +21,7 @@ public class MonitorQueue<T> {
 
     /**
      * Enqueues element.
+     *
      * @param e Element to queue.
      */
     public synchronized void enqueue(T e) {
@@ -29,6 +31,7 @@ public class MonitorQueue<T> {
 
     /**
      * Returns the head of the queue and removes it.
+     *
      * @return head of the queue.
      */
     public synchronized T dequeue() {

@@ -11,6 +11,7 @@ import java.util.List;
  * a list of `Person` objects. It uses a producer-consumer pattern with synchronized
  * methods to ensure proper coordination between threads. Additionally, it stores
  * a `Rectangle` object representing the area associated with the buffer.
+ * To prevent data races, it deep-clones all objects passed through it.
  */
 public class PaddingBuffer {
     private final Rectangle area;
