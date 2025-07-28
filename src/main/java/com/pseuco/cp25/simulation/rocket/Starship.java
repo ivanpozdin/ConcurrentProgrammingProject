@@ -169,26 +169,39 @@ public class Starship implements Simulation {
      */
     private void createPaddings(GridManager gridManager) {
         boolean hasObstacles = !scenario.getObstacles().isEmpty();
-        for (Patch outerPatch : patches) {
-            for (Patch innerPatch : patches) {
-                if (innerPatch == outerPatch) continue;
-                if (!innerPatch.getPatchArea().overlaps(outerPatch.getPaddedArea())) continue;
+        int patchCount = patches.size();
 
-                Rectangle intersectionOfPaddingAndPatch =
-                        outerPatch.getPaddedArea().intersect(innerPatch.getPatchArea());
+        for (int i = 0; i < patchCount; i++) {
+            Patch outerPatch = patches.get(i);
+            Rectangle outerPaddedArea = outerPatch.getPaddedArea();
+            Rectangle outerPatchArea = outerPatch.getPatchArea();
 
+            for (int j = i + 1; j < patchCount; j++) {
+                Patch innerPatch = patches.get(j);
+                if (!innerPatch.getPatchArea().overlaps(outerPaddedArea)) continue;
+
+                // Outer patch padding over inner patch
+                Rectangle intersectionOuterOverInner =
+                        outerPaddedArea.intersect(innerPatch.getPatchArea());
                 if (hasObstacles) {
                     if (!gridManager.mayPropagateFrom(scenario,
-                            intersectionOfPaddingAndPatch, outerPatch.getPatchArea())) {
+                            intersectionOuterOverInner, outerPatchArea))
                         continue;
-                    }
                 }
-
-                PaddingBuffer paddingBuffer =
-                        new PaddingBuffer(intersectionOfPaddingAndPatch);
-
+                PaddingBuffer paddingBuffer = new PaddingBuffer(intersectionOuterOverInner);
                 innerPatch.addInnerPadding(paddingBuffer);
                 outerPatch.addOuterPadding(paddingBuffer);
+
+                // Inner patch padding over outer patch
+                Rectangle intersectionInnerOverOuter = innerPatch.getPaddedArea().intersect(outerPatchArea);
+                if (hasObstacles) {
+                    if (!gridManager.mayPropagateFrom(scenario,
+                            intersectionInnerOverOuter, innerPatch.getPatchArea()))
+                        continue;
+                }
+                paddingBuffer = new PaddingBuffer(intersectionInnerOverOuter);
+                outerPatch.addInnerPadding(paddingBuffer);
+                innerPatch.addOuterPadding(paddingBuffer);
             }
         }
     }

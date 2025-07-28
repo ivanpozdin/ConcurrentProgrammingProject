@@ -175,7 +175,6 @@ public class Rocket implements Simulation {
      */
     private void createPaddings() {
         for (Patch outerPatch : patches) {
-
             for (Patch innerPatch : patches) {
                 if (innerPatch == outerPatch) continue;
                 if (!innerPatch.getPatchArea().overlaps(outerPatch.getPaddedArea())) continue;
@@ -193,7 +192,6 @@ public class Rocket implements Simulation {
                 outerPatch.addOuterPadding(paddingBuffer);
             }
         }
-
     }
 
     /**
