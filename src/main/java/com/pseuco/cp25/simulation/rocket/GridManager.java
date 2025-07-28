@@ -104,7 +104,7 @@ public class GridManager {
     }
 
     /**
-     * An optimized version of the method of the same name from common.Utils class
+     * An optimized version of the method with the same name from common.Utils class
      */
     public boolean mayPropagateFrom(
             final Scenario scenario,
@@ -163,7 +163,7 @@ public class GridManager {
 
     /**
      * Returns component ID that the provided cell is contained in.
-     * If a cell does not belong to a component returns -1.
+     * If a cell does not belong to a component, returns -1.
      * @return component ID or -1 on no component ownership
      */
     public int getComponentId(XY cell) {
