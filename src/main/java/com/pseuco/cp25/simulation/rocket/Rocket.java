@@ -85,7 +85,7 @@ public class Rocket implements Simulation {
         while (padding >= movementUncertainty(t + 1) + infectionRadius) {
             t++;
         }
-        return Math.max(t, getTicksForInfectionSpreadComplex());
+        return Math.min(t, getTicksForInfectionSpreadComplex());
     }
 
     /**
