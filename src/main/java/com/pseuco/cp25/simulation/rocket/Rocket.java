@@ -80,21 +80,57 @@ public class Rocket implements Simulation {
      * @return Cycle duration.
      */
     private int getTicks() {
-        int t = 1;
-        while (padding >= movementUncertainty(t) + infectionUncertainty(t)) {
+        int infectionRadius = scenario.getParameters().getInfectionRadius();
+        int t = 0;
+        while (padding >= movementUncertainty(t + 1) + infectionRadius) {
             t++;
         }
-        return t - 1;
+        return Math.max(t, getTicksForInfectionSpreadComplex());
     }
 
+    /**
+     * @param ticks The number of ticks to get the uncertainty size for.
+     * @return Size of movement uncertainty.
+     */
     private int movementUncertainty(int ticks) {
         return 2 * ticks;
     }
 
-    private int infectionUncertainty(int ticks) {
+    /**
+     * Gets safe number of ticks by simulating the fastest infection spread
+     * (not incl. case when movement is propagated with speed 2*t).
+     *
+     * @return Returns cycle duration (it may be less than the actual one).
+     */
+    private int getTicksForInfectionSpreadComplex() {
+        int infectionRadius = scenario.getParameters().getInfectionRadius();
         int incubationTime = scenario.getParameters().getIncubationTime();
-        int radius = scenario.getParameters().getInfectionRadius();
-        return Math.ceilDiv(ticks, incubationTime) * radius;
+
+        if (infectionRadius + 1 >= padding) return 0;
+
+        int ticks = 0;
+        int position = -1;
+
+        while (position < padding) {
+            if (position == -1)
+                // the border-crossing scenario
+                position += infectionRadius + 2;
+            else
+                // otherwise just move and infect
+                position += infectionRadius + 1;
+
+            // -1 to compensate for 0-based indexing of position
+            if (position > padding - 1) break;
+
+            ticks++;
+
+            for (int i = 0; i < incubationTime - 1; i++) {
+                position++;
+                if (position > padding - 1) return ticks;
+                ticks++;
+            }
+        }
+        return ticks;
     }
 
     @Override
