@@ -29,7 +29,6 @@ public class Starship implements Simulation {
     private final List<MonitorQueue<OutputEntry>> outputQueues;
 
     private final List<Thread> threads = new ArrayList<>();
-    private final GridManager gridManager;
     Validator validator;
     /**
      * Constructs a starship with the given parameters.
@@ -54,12 +53,12 @@ public class Starship implements Simulation {
         }
         this.cycleDuration = tempCycle;
         this.padding = tempPadding;
-        this.gridManager = new GridManager(scenario);
         this.validator = new DummyValidator();
 
+        GridManager gridManager = new GridManager(scenario);
         populate();
         createPatches();
-        createPaddings();
+        createPaddings(gridManager);
         initializeStatistics();
 
         if (scenario.getTrace()) {
@@ -168,9 +167,9 @@ public class Starship implements Simulation {
      * Stores created PatchBuffers representing pieces of geometric padding into correspoding
      * innerPaddings or outerPaddings of the appropriate patch.
      */
-    private void createPaddings() {
+    private void createPaddings(GridManager gridManager) {
+        boolean hasObstacles = !scenario.getObstacles().isEmpty();
         for (Patch outerPatch : patches) {
-
             for (Patch innerPatch : patches) {
                 if (innerPatch == outerPatch) continue;
                 if (!innerPatch.getPatchArea().overlaps(outerPatch.getPaddedArea())) continue;
@@ -178,8 +177,12 @@ public class Starship implements Simulation {
                 Rectangle intersectionOfPaddingAndPatch =
                         outerPatch.getPaddedArea().intersect(innerPatch.getPatchArea());
 
-                if (!gridManager.mayPropagateFrom(scenario,
-                        intersectionOfPaddingAndPatch, outerPatch.getPatchArea())) continue;
+                if (hasObstacles) {
+                    if (!gridManager.mayPropagateFrom(scenario,
+                            intersectionOfPaddingAndPatch, outerPatch.getPatchArea())) {
+                        continue;
+                    }
+                }
 
                 PaddingBuffer paddingBuffer =
                         new PaddingBuffer(intersectionOfPaddingAndPatch);
@@ -188,7 +191,6 @@ public class Starship implements Simulation {
                 outerPatch.addOuterPadding(paddingBuffer);
             }
         }
-
     }
 
     /**

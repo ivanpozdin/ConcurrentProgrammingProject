@@ -5,47 +5,60 @@ import com.pseuco.cp25.model.*;
 import java.util.*;
 
 public class GridManager {
-    private final Rectangle grid;
+    private final int STARTING_COMPONENT_ID = 0;
+
+    private final Scenario scenario;
     private final Map<XY, Integer> cellToComponent = new HashMap<>();
     private final List<Set<XY>> components = new ArrayList<>();
     private final Set<Integer> emptyComponents;
+    private final boolean hasObstacles;
 
     public GridManager(Scenario scenario) {
-        this.grid = scenario.getGrid();
+        this.scenario = scenario;
+        this.hasObstacles = !scenario.getObstacles().isEmpty();
+
         int width = scenario.getGridSize().getX();
         int height = scenario.getGridSize().getY();
 
-        // Initialize grid matrix without obstacles
-        boolean[][] free = new boolean[width][height];
-        for (int x = 0; x < width; x++) {
-            for (int y = 0; y < height; y++) {
-                free[x][y] = true;
-            }
-        }
-
-        // Mark all obstacles in out grid
-        for (Rectangle rect : scenario.getObstacles()) {
-            for (XY cell : rect) {
-                free[cell.getX()][cell.getY()] = false;
-            }
-        }
-
-        // Compute grid's components
-        boolean[][] visited = new boolean[width][height];
-        int currentId = 0;
-        for (int x = 0; x < width; x++) {
-            for (int y = 0; y < height; y++) {
-                if (free[x][y] && !visited[x][y]) {
-                    Set<XY> component = new HashSet<>();
-                    gridBFS(new XY(x, y), free, visited, component, currentId);
-                    components.add(component);
-                    currentId++;
+        // In case there are obstacles, we consider grid's graph and
+        // Calculate its components
+        if (hasObstacles) {
+            // Initialize grid matrix without obstacles
+            boolean[][] free = new boolean[width][height];
+            for (int x = 0; x < width; x++) {
+                for (int y = 0; y < height; y++) {
+                    free[x][y] = true;
                 }
             }
-        }
 
-        // Find empty components
-        emptyComponents = findEmptyComponentIds(scenario.getPopulation());
+            // Mark all obstacles in out grid
+            for (Rectangle rect : scenario.getObstacles()) {
+                for (XY cell : rect) {
+                    free[cell.getX()][cell.getY()] = false;
+                }
+            }
+
+            // Compute grid's components
+            boolean[][] visited = new boolean[width][height];
+            int currentId = STARTING_COMPONENT_ID;
+            for (int x = 0; x < width; x++) {
+                for (int y = 0; y < height; y++) {
+                    if (free[x][y] && !visited[x][y]) {
+                        Set<XY> component = new HashSet<>();
+                        gridBFS(new XY(x, y), free, visited, component, currentId);
+                        components.add(component);
+                        currentId++;
+                    }
+                }
+            }
+            // Find empty components
+            emptyComponents = findEmptyComponentIds(scenario.getPopulation());
+        } else {
+            // Collections are left empty indicating there is only one component:
+            // cellToComponent = empty
+            // components = empty
+            emptyComponents = new HashSet<>();
+        }
     }
 
     /**
@@ -70,7 +83,7 @@ public class GridManager {
                 int nx = neighbor.getX();
                 int ny = neighbor.getY();
 
-                if (grid.contains(neighbor) && free[nx][ny] && !visited[nx][ny]) {
+                if (scenario.getGrid().contains(neighbor) && free[nx][ny] && !visited[nx][ny]) {
                     visited[nx][ny] = true;
                     cellToComponent.put(neighbor, componentId);
                     queue.add(neighbor);
@@ -110,6 +123,10 @@ public class GridManager {
             final Scenario scenario,
             final Rectangle source,
             final Rectangle target) {
+        if (!hasObstacles) {
+            return true;
+        }
+
         final Set<XY> region = new HashSet<>();
         final Set<XY> frontier = new HashSet<>();
         for (final XY targetCell : target) {
@@ -163,10 +180,14 @@ public class GridManager {
 
     /**
      * Returns component ID that the provided cell is contained in.
-     * If a cell does not belong to a component returns -1.
+     * If a cell (e.g. obstacle) does not belong to a component returns -1.
      * @return component ID or -1 on no component ownership
      */
-    public int getComponentId(XY cell) {
-        return cellToComponent.getOrDefault(cell, -1);
+    private int getComponentId(XY cell) {
+        if (cellToComponent.isEmpty()) {
+            return STARTING_COMPONENT_ID;
+        } else {
+            return cellToComponent.getOrDefault(cell, -1);
+        }
     }
 }
